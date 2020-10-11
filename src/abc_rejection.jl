@@ -20,6 +20,10 @@ function ABCRejection(abc_input::ABCInput, n_sims::Int; store_init=false, parall
     end
 
     n_successes = sum(successes)
+    if n_successes == 0
+        error("No successes for simulator!")
+        return nothing
+    end
     parameters = parameters[:, successes]
     summary_stats = summary_stats[:, successes]
     abc_distance = abc_input.abc_dist(abc_input.obs_summary_stats, summary_stats)
