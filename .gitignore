@@ -41,3 +41,5 @@ Manifest.toml
 .history
 
 # End of https://www.toptal.com/developers/gitignore/api/julia,visualstudiocode
+
+examples/*
