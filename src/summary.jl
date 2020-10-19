@@ -58,13 +58,14 @@ function generalized_hurts_exp(obs)
 end
 
 function get_summary_stats(obs::Array{Float64, 1}, simulated_obs::Array{Float64, 1})
-    summary_stats = zeros(17)
+    summary_stats = zeros(18)
 
     summary_stats[1] = mean(simulated_obs)
     summary_stats[2] = std(simulated_obs)
     summary_stats[3] = normal_kurtosis(simulated_obs)
     summary_stats[4] = ks_test(obs, simulated_obs)
     summary_stats[5] = generalized_hurts_exp(simulated_obs)
+    summary_stats[6] = mmd(GaussianKernel(1.0), reshape(obs, (1,:)), reshape(simulated_obs, (1,:)))
 
     acf_raw = acf(simulated_obs, [1, 5])
     acf_sqr = acf(simulated_obs.^2, [1, 5])
@@ -74,20 +75,21 @@ function get_summary_stats(obs::Array{Float64, 1}, simulated_obs::Array{Float64,
     pacf_sqr = pacf(simulated_obs.^2, [1, 5])
     pacf_abs = pacf(abs.(simulated_obs), [1, 5])
     cov_stats = [acf_raw..., acf_sqr..., acf_abs..., pacf_raw..., pacf_sqr..., pacf_abs...]
-    for i in 6:17
-        summary_stats[i] = cov_stats[i-5]
+    for i in 7:18
+        summary_stats[i] = cov_stats[i-6]
     end
     return summary_stats
 end
 
 function get_summary_stats(obs::Array{Float64, 1})
-    summary_stats = zeros(17)
+    summary_stats = zeros(18)
 
     summary_stats[1] = mean(obs)
     summary_stats[2] = std(obs)
     summary_stats[3] = normal_kurtosis(obs)
     summary_stats[4] = 0.0
     summary_stats[5] = generalized_hurts_exp(obs)
+    summary_stats[6] = 0.0
 
     acf_raw = acf(obs, [1, 5])
     acf_sqr = acf(obs.^2, [1, 5])
@@ -97,8 +99,8 @@ function get_summary_stats(obs::Array{Float64, 1})
     pacf_sqr = pacf(obs.^2, [1, 5])
     pacf_abs = pacf(abs.(obs), [1, 5])
     cov_stats = [acf_raw..., acf_sqr..., acf_abs..., pacf_raw..., pacf_sqr..., pacf_abs...]
-    for i in 6:17
-        summary_stats[i] = cov_stats[i-5]
+    for i in 7:18
+        summary_stats[i] = cov_stats[i-6]
     end
     return summary_stats
 end
