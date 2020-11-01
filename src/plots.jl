@@ -65,6 +65,8 @@ end
                               @series begin
                                     xguide --> "$(par2)"
                                     yguide --> "$(par1)"
+                                    xlims := dist_range(prior_dists[j]).+(-0.05, 0.1)
+                                    ylims := dist_range(prior_dists[i]).+(-0.05, 0.1)
                                     seriescolor := iteration_colours[iter]
                                     data = (abc_out.parameters[param_inds[j], :], abc_out.parameters[param_inds[i], :])
                               end # @series
