@@ -1,6 +1,6 @@
 function ABCRejection(abc_input::ABCInput, n_sims::Int; store_init=false, parallel=false)
     prog = Progress(n_sims, 1)
-    n_params = length(abc_input.prior)
+    n_params = size(abc_input.prior.distribution, 1)
     parameters = Array{Float64}(undef, n_params, n_sims)
     summary_stats = Array{Float64}(undef, abc_input.n_summary_stats, n_sims)
     successes = Array{Bool}(undef, n_sims)
@@ -26,8 +26,7 @@ function ABCRejection(abc_input::ABCInput, n_sims::Int; store_init=false, parall
     end
     parameters = parameters[:, successes]
     summary_stats = summary_stats[:, successes]
-    abc_distance = abc_input.abc_dist(abc_input.obs_summary_stats, summary_stats)
-    distances = [abc_distance(summary_stats[:, i]) for i in 1:n_successes]
+    distances = abc_input.abc_dist(summary_stats)[:]
 
     if store_init
         init_sims = summary_stats
@@ -36,7 +35,8 @@ function ABCRejection(abc_input::ABCInput, n_sims::Int; store_init=false, parall
         init_sims = Array{Float64}(undef, 0, 0)
         init_params = Array{Float64}(undef, 0, 0)
     end
-    out = ABCRejOutput(n_params, abc_input.n_summary_stats, n_sims, n_successes, abc_input.parameter_names, parameters, summary_stats, distances, ones(n_sims), abc_distance, init_sims, init_params)
+
+    out = ABCRejOutput(n_params, abc_input.n_summary_stats, n_sims, n_successes, abc_input.parameter_names, parameters, summary_stats, distances, ones(n_sims), abc_input.abc_dist, init_sims, init_params)
     sort_ABC_output!(out)
     return out
 end

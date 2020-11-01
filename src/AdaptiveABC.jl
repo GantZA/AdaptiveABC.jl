@@ -20,7 +20,7 @@ import Distributions.pdf
 import HypothesisTests.ksstats
 
 
-
+include("bootstrap_weight.jl")
 include("distances.jl")
 include("abc_types.jl")
 
@@ -29,12 +29,16 @@ include("abc_rejection.jl")
 include("plots.jl")
 include("summary.jl")
 
+
 export 
     WeightedEuclidean, # Distance Measure Datatypes
+    WeightedBootstrap,
     ABCInput, ABCOutput, # ABC Input and Output Types
-    ABC_PMC, ABCRejection, # ABC Algorithms
+    ABC_PMC, # ABC Algorithms
+    ABCRejection, # ABC Algorithms
     Prior,  # Prior struct for parameter prior distributions
-    get_summary_stats
+    get_summary_stats,
+    BlockBootstrapWeightMatrix
 
 
 end # module

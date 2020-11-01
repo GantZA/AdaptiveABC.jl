@@ -34,7 +34,7 @@ mutable struct ABCInput <: Input
     obs_summary_stats::Array{Float64, 1}
     summary_fn::Function
     n_summary_stats::Int
-    abc_dist::T where T <: DataType
+    abc_dist::T where T <: ABCDistance
 end
 
 abstract type ABCOutput end

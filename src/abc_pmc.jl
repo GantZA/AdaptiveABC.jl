@@ -10,7 +10,6 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, α::Float64, max_sims::I
     iter_done = 0
     simulations_done = zeros(Int, max_iter)
     first_iter = true
-    abc_dists = Array{abc_input.abc_dist, 1}(undef, max_iter)
     thresholds = zeros(Float64, max_iter+1)
     thresholds[1] = h1
     rej_outputs = Array{ABCRejOutput, 1}(undef, max_iter)
@@ -48,8 +47,7 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, α::Float64, max_sims::I
                     # Sample batch_size particles using ABC-PMC
 
                     accepted[j], proposal_parameters[:, j], prop_summary_stats[:, j], prior_weight[j] = abc_pmc_iteration(
-                        abc_input, sample_from_prior, rej_outputs[1:i-1], perturb_dist,
-                        abc_dists[1:i-1], thresholds[1:i-1]
+                        abc_input, sample_from_prior, rej_outputs[1:i-1], perturb_dist, thresholds[1:i-1]
                         )
 
                     atomic_add!(parallel_accepts, accepted[j])
@@ -69,7 +67,7 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, α::Float64, max_sims::I
                     end
                 end
             end
-        else
+        else  # Serial Sampling
             parallel_accepts = Atomic{Int64}(0)
             total_sims = Atomic{Int64}(0)
             accepted_particles = 0
@@ -87,11 +85,9 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, α::Float64, max_sims::I
                     end
                     # Sample batch_size particles using ABC-PMC
                     accepted[j], proposal_parameters[:, j], prop_summary_stats[:, j], prior_weight[j] = abc_pmc_iteration(
-                        abc_input, sample_from_prior, rej_outputs[1:i-1], perturb_dist,
-                        abc_dists[1:i-1], thresholds[1:i-1]
+                        abc_input, sample_from_prior, rej_outputs[1:i-1], perturb_dist, thresholds[1:i-1]
                         )
 
-                    next!(prog)
                     atomic_add!(parallel_accepts, accepted[j])
                     atomic_add!(total_sims, 1)
                 end
@@ -127,11 +123,10 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, α::Float64, max_sims::I
             break
         end
 
-        current_abc_dist = abc_input.abc_dist(abc_input.obs_summary_stats, new_summary_stats)
         if first_iter && thresholds[i]==Inf
             current_distances = zeros(Float64, n_particles)
         else
-            current_distances = [current_abc_dist(new_summary_stats[:, j]) for j in 1:n_particles]
+            current_distances = abc_input.abc_dist(new_summary_stats)[:]
         end
         
         if sample_from_prior
@@ -143,19 +138,18 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, α::Float64, max_sims::I
 
         rej_outputs[i] = ABCRejOutput(
             n_parameters, abc_input.n_summary_stats, simulations_done[i], n_particles, abc_input.parameter_names, new_parameters,
-            new_summary_stats, current_distances, new_weights, current_abc_dist, init_summary_stats, init_parameters 
+            new_summary_stats, current_distances, new_weights, copy(abc_input.abc_dist), init_summary_stats, init_parameters 
         )
-        abc_dists[i] = abc_input.abc_dist(abc_input.obs_summary_stats, init_summary_stats, init_parameters)
-        new_distances = [abc_dists[i](new_summary_stats[:, j]) for j in 1:n_particles]
+        new_distances = abc_input.abc_dist(new_summary_stats)[:]
         new_distances = sort(new_distances)[1:k]
         thresholds[i+1] = new_distances[k]
-        
+
         print("\n\n---------------------- Iteration $i - $(simulations_done[i]) Simulations Done [Total=$(sum(simulations_done))] ----------------------\n\n")
         acceptance_rate = k/simulations_done[i]
         @printf("Acceptance Rate %.2f%%\n", 100*acceptance_rate)
         print(rej_outputs[i])
         println("Next threshold: $(round(thresholds[i+1], digits=4))")
-        print("\n----------------------------------------------------------\\n")
+        print("\n----------------------------------------------------------\n")
         first_iter = false
         next!(prog)
     end
@@ -183,9 +177,10 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, α::Float64, max_sims::I
         init_summary_stats = Array{Array{Float64, 2}}(undef, 0)
         init_parameters = Array{Array{Float64, 2}}(undef, 0)
     end
+    abc_dists = [rej_outputs[i].abc_distance for i in 1:num_iters]
     output = ABCPMCOutput(
         n_parameters, abc_input.n_summary_stats, num_iters, simulations_done[1:num_iters],
-        abc_input.parameter_names, parameters, summary_stats, distances, weights, abc_dists[1:num_iters],
+        abc_input.parameter_names, parameters, summary_stats, distances, weights, abc_dists,
         thresholds[1:num_iters], init_summary_stats, init_parameters
     )
     return output
@@ -193,7 +188,7 @@ end
 
 function abc_pmc_iteration(
     abc_input::ABCInput, sample_from_prior::Bool, rej_outputs::Array{ABCRejOutput}, perturb_dist::MvNormal,
-    abc_dists::Array{T, 1} where T <: ABCDistance, thresholds::Array{Float64, 1}
+    thresholds::Array{Float64, 1}
     )
     success = false  # simulated summary stats successfully generated
     while success == false
@@ -213,7 +208,7 @@ function abc_pmc_iteration(
         if !success
             continue
         end
-        accept = check_proposal(prop_summary_stats, abc_dists, thresholds)
+        accept = check_proposal(prop_summary_stats, rej_outputs, thresholds)
         if accept
             return 1, proposal_parameters, prop_summary_stats, prior_weight
         else
@@ -241,14 +236,14 @@ function get_perturb_dist(out::ABCRejOutput, diag::Bool)
 end
 
 
-function check_proposal(summary_stats::Array{Float64, 1}, dist::T where T <: ABCDistance, threshold::Float64)
-    return dist(summary_stats) <= threshold 
+function check_proposal(summary_stats::Array{Float64, 1}, rej_output::ABCRejOutput, threshold::Float64)
+    return rej_output.abc_distance(summary_stats) <= threshold 
 end
 
 
-function check_proposal(summary_stats::Array{Float64, 1}, abc_dists::Array{T, 1} where T <: ABCDistance, thresholds::Array{Float64, 1})
-    for i in size(abc_dists, 1):-1:1
-        if thresholds[i] != Inf && !check_proposal(summary_stats, abc_dists[i], thresholds[i])
+function check_proposal(summary_stats::Array{Float64, 1}, rej_outputs::Array{ABCRejOutput}, thresholds::Array{Float64, 1})
+    for i in size(rej_outputs, 1):-1:1
+        if thresholds[i] != Inf && !check_proposal(summary_stats, rej_outputs[i], thresholds[i])
             return false
         end
     end
