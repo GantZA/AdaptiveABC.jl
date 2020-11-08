@@ -131,8 +131,8 @@ end
       layout := size(param_inds, 1)^ 2
       margin := 3mm
       size := plot_size
-      posterior_mean = parameter_means(abc_out)[param_inds, end]
-      posterior_median = median(abc_out.parameters[param_inds, :, end], dims=2)
+      posterior_mean = parameter_means(abc_out)[param_inds, iterations[end]]
+      posterior_median = median(abc_out.parameters[param_inds, :, iterations[end]], dims=2)
 
       for (i, par1) in enumerate(abc_out.parameter_names[param_inds])
             for (j, par2) in enumerate(abc_out.parameter_names[param_inds])
@@ -145,7 +145,7 @@ end
                               xlims := dist_range(prior_dists[i]).+(-0.05, 0.1)
                               bins := 20
                               normalize := true
-                              data = abc_out.parameters[param_inds[i], :, end]
+                              data = abc_out.parameters[param_inds[i], :, iterations[end]]
                         end  # @series
                         @series begin
                               seriestype := :line
