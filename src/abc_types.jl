@@ -43,14 +43,15 @@ mutable struct ABCRejOutput <: ABCOutput
     n_parameters::Int
     n_summary_stats::Int
     n_sims::Int
+    n_reps::Int
     n_successes::Int
     parameter_names::Array{String, 1}
     parameters::Array{Float64, 2}  # parameter[i, j,] is the ith parameter in the jth accepted simulation
-    summary_stats::Array{Float64, 2}  # summary_stats[i, j] is the ith summary statistic in the jth accepted simulation 
+    summary_stats::Array{Float64, 3}  # summary_stats[i, j] is the ith summary statistic in the jth accepted simulation in the kth replication
     distances::Array{Float64, 1}  # distances[i] is the distance in the ith accepted simulation 
     weights::Array{Float64, 1}  # weights[i] is the weight for the ith accepted simulation
     abc_distance::T where T <: ABCDistance
-    init_summary_stats::Array{Float64, 2}  ##sims used for distance initialisation (only stored optionally)
+    init_summary_stats::Array{Float64, 3}  ##sims used for distance initialisation (only stored optionally)
     init_parameters::Array{Float64, 2}  ##pars used for distance initialisation (only stored optionally)
 end
 
@@ -79,7 +80,7 @@ end
 function sort_ABC_output!(out::ABCRejOutput)
     sorted_order = sortperm(out.distances)
     out.parameters = out.parameters[:, sorted_order]
-    out.summary_stats = out.summary_stats[:,sorted_order]
+    out.summary_stats = out.summary_stats[:,sorted_order, :]
     out.distances = out.distances[sorted_order]
     out.weights = out.weights[sorted_order]
     return 
@@ -98,10 +99,11 @@ mutable struct ABCPMCOutput <: ABCOutput
     n_parameters::Int
     n_summary_stats::Int
     n_iterations::Int
+    n_reps::Int
     n_tot_sims::Array{Int, 1}
     parameter_names::Array{String, 1}
     parameters::Array{Float64, 3}  # parameter[i, j, k] is the ith parameter in the jth accepted simulation in the kth iteration
-    summary_stats::Array{Float64, 3}  # summary_stats[i, j, k] is the ith summary statistic in the jth accepted simulation in the kth iteration
+    summary_stats::Array{Float64, 4}  # summary_stats[i, j, k] is the ith summary statistic in the jth accepted simulation in the kth replication in the lth iteration
     distances::Array{Float64, 2}  # distances[i, j] is the distance in the ith accepted simulation in the jth iteration
     weights::Array{Float64, 2}  # weights[i, j] is the weight for the ith accepted simulation in the kth iteration
     abc_distances::Array{ABCDistance, 1}  # ABCDistance used in the ith iteration
