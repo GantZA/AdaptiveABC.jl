@@ -118,3 +118,40 @@ function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64, 2})
     weighted_diff = summary_diffs' * wb.bootstrap_weight_matrix.weight_matrix * summary_diffs
     return weighted_diff
 end
+
+# Maximum Mean Discrepancy
+
+# mutable struct MaximumMeanDiscrepancy <: ABCDistance
+#     obs_returns::Array{Float64, 1}
+#     get_summary_stats::Function
+# end
+
+# function copy(MMD::MaximumMeanDiscrepancy)
+#     return MaximumMeanDiscrepancy(MMD.obs_returns, MMD.get_summary_stats)
+# end
+
+
+# function (MMD::MaximumMeanDiscrepancy)(sim_sum_stats::Array{Float64, 3})::Array{Float64, 1}
+#     n_summary_stats, n_particles, n_replications = size(sim_sum_stats)
+#     # Calculate Weighted Differences
+#     obs_array = repeat(obs, outer=[1, n_particles, n_replications])
+#     max_mean_discrepancies = mmd(GaussianKernel(1.0), reshape(obs_array, (n_particles,:)), reshape(simulation(ARMA(0.5, 0.5, 0.09), ts_length=n), (1,:)))
+#     return weighted_diffs[1, :]
+# end
+
+# function (MMD::MaximumMeanDiscrepancy)(sim_sum_stats::Array{Float64, 1})
+#     # Calculate Weighted Differences
+#     obs_sum_stats = MMD.get_summary_stats(MMD.obs_returns)
+#     summary_diffs = obs_sum_stats .- sim_sum_stats
+
+# end
+# mmd(GaussianKernel(1.0), reshape(obs, (1,:)), reshape(simulation(ARMA(0.5, 0.5, 0.09), ts_length=n), (1,:)))
+# function (MMD::MaximumMeanDiscrepancy)(sim_sum_stats::Array{Float64, 2})
+#     # Given 1 particle of n_rep and n_sum_stats, output the distance
+#     n_summary_stats, n_replications = size(sim_sum_stats)
+#     obs_sum_stats = repeat(MMD.get_summary_stats(MMD.obs_returns), outer=[1, n_replications])
+#     summary_diffs = mean(obs_sum_stats .- sim_sum_stats, dims=2)[:, 1]
+
+# end
+
+# function 

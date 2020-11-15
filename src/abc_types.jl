@@ -88,11 +88,10 @@ end
 
 function copy(out::ABCRejOutput)
     return ABCRejOutput(
-        out.n_parameters, out.n_summary_stats, out.n_sims, out.n_successes, out.parameter_names, 
+        out.n_parameters, out.n_summary_stats, out.n_reps, out.n_sims, out.n_successes, out.parameter_names, 
         out.parameters, out.summary_stats, out.distances, out.weights, out.abc_distance, out.init_summary_stats, out.init_parameters
     )
 end
-
 
 
 mutable struct ABCPMCOutput <: ABCOutput
@@ -105,7 +104,7 @@ mutable struct ABCPMCOutput <: ABCOutput
     parameters::Array{Float64, 3}  # parameter[i, j, k] is the ith parameter in the jth accepted simulation in the kth iteration
     summary_stats::Array{Float64, 4}  # summary_stats[i, j, k] is the ith summary statistic in the jth accepted simulation in the kth replication in the lth iteration
     distances::Array{Float64, 2}  # distances[i, j] is the distance in the ith accepted simulation in the jth iteration
-    weights::Array{Float64, 2}  # weights[i, j] is the weight for the ith accepted simulation in the kth iteration
+    weights::Array{Float64, 2}  # weights[i, j] is the weight for the ith accepted simulation in the jth iteration
     abc_distances::Array{ABCDistance, 1}  # ABCDistance used in the ith iteration
     thresholds::Array{Float64, 1}  # thresholds[i] is the acceptance threshold used in the ith iteration
     init_summary_stats::Array{Array{Float64, 2}, 1} ##init_sims[i] is sims for distance initialisation at iteration i (only stored optionally)
