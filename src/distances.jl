@@ -77,6 +77,13 @@ function MAD(x::Array{Float64, 2})::Float64
     return median(abs.(x .- x_median))
 end
 
+# Median Absolute Deviation
+function MAD(x::Array{Float64, 1})::Float64
+    # Calculate Median Absolute Deviation of Array (n_particles x 1)
+    x_median = median(x)
+    return median(abs.(x .- x_median))
+end
+
 
 # Winker Objective Function
 
