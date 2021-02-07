@@ -123,9 +123,11 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
         end
 
         if first_iter && thresholds[i]==Inf
+            # Init weights for next iter, overwrite dists as zeros, (accept all particles)
+            current_distances = abc_input.abc_dist(init_summary_stats, new_summary_stats)
             current_distances = zeros(Float64, n_particles)
         else
-            current_distances = abc_input.abc_dist(new_summary_stats)
+            current_distances = abc_input.abc_dist(init_summary_stats, new_summary_stats)
         end
         
         if sample_from_prior
@@ -139,7 +141,7 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
             n_parameters, abc_input.n_summary_stats, simulations_done[i], n_reps, accepted_particles, abc_input.parameter_names, new_parameters,
             new_summary_stats, current_distances, new_weights, copy(abc_input.abc_dist), init_summary_stats, init_parameters 
         )
-        new_distances = abc_input.abc_dist(new_summary_stats)
+        new_distances = abc_input.abc_dist(init_summary_stats, new_summary_stats)
         new_distances = sort(new_distances)[1:k]
         thresholds[i+1] = new_distances[k]
         print("\n\n---------------------- Iteration $i - $(simulations_done[i]) Simulations Done [Total=$(sum(simulations_done))] ----------------------\n\n")
