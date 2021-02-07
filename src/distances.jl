@@ -33,10 +33,39 @@ end
 #     end
 # end
 
-function (we::WeightedEuclidean)(sim_sum_stats::Array{Float64, 3})::Array{Float64, 1}
+function (we::WeightedEuclidean)(
+        init_sum_stats::Array{Float64, 3},
+        sim_sum_stats::Array{Float64, 3}
+    )::Array{Float64, 1}
+    
     n_summary_stats, n_particles, n_replications = size(sim_sum_stats)
 
-    # Calculate weights
+    # Calculate Weighted Differences
+    obs_sum_stats_vec = we.get_summary_stats(we.obs_returns)
+    obs_sum_stats = repeat(obs_sum_stats_vec, outer=[1, n_particles, n_replications])
+    weighted_diff = repeat(we.weights, outer=[1, n_particles, n_replications]) .* abs.(obs_sum_stats - sim_sum_stats)  # Array of Weighted Differences (stats x sims x reps) 
+    vec_norm_weighted_diffs = mapslices(x -> norm(x, 2), weighted_diff, dims=[1, 3])[1,:,1]
+    
+    # Update/Calculate weights using init_sum_stats
+    if n_particles == 0
+        weights = ones(n_summary_stats)
+    else
+        inv_weights = [MAD(init_sum_stats[i, :, :]) for i in 1:n_summary_stats]  # For each statistic, calculate the MAD across all n_sim, n_rep values       
+        weights = 1.0./inv_weights
+    end
+    we.weights = weights
+
+    return vec_norm_weighted_diffs # Vec of Normalised Weighted Differences (sims)
+end
+
+
+function (we::WeightedEuclidean)(
+        sim_sum_stats::Array{Float64, 3}
+    )::Array{Float64, 1}
+
+    n_summary_stats, n_particles, n_replications = size(sim_sum_stats)
+
+    # Calculate weights using sim_sum_stats
     if n_particles == 0
         weights = ones(n_summary_stats)
     else
@@ -48,8 +77,10 @@ function (we::WeightedEuclidean)(sim_sum_stats::Array{Float64, 3})::Array{Float6
     # Calculate Weighted Differences
     obs_sum_stats_vec = we.get_summary_stats(we.obs_returns)
     obs_sum_stats = repeat(obs_sum_stats_vec, outer=[1, n_particles, n_replications])
-    weighted_diff = repeat(weights, outer=[1, n_particles, n_replications]) .* abs.(obs_sum_stats - sim_sum_stats)  # Array of Weighted Differences (stats x sims x reps) 
-    return mapslices(x -> norm(x, 2), weighted_diff, dims=[1, 3])[1,:,1] # Vec of Normalised Weighted Differences (sims)
+    weighted_diff = repeat(we.weights, outer=[1, n_particles, n_replications]) .* abs.(obs_sum_stats - sim_sum_stats)  # Array of Weighted Differences (stats x sims x reps) 
+    vec_norm_weighted_diffs = mapslices(x -> norm(x, 2), weighted_diff, dims=[1, 3])[1,:,1]
+    
+    return vec_norm_weighted_diffs # Vec of Normalised Weighted Differences (sims)
 end
 
 
@@ -98,7 +129,10 @@ function copy(wb::WeightedBootstrap)
 end
 
 
-function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64, 3})::Array{Float64, 1}
+function (wb::WeightedBootstrap)(
+        init_sum_stats::Array{Float64, 3},
+        sim_sum_stats::Array{Float64, 3}
+    )::Array{Float64, 1}
     n_summary_stats, n_particles, n_replications = size(sim_sum_stats)
     # Calculate Weighted Differences
     obs_sum_stats_vec = wb.get_summary_stats(wb.obs_returns)
@@ -107,6 +141,13 @@ function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64, 3})::Array{Float6
     summary_diffs = mean(obs_sum_stats .- sim_sum_stats, dims=3)[:, :, 1]
     weighted_diffs = mapslices(x -> x' * wb.bootstrap_weight_matrix.weight_matrix * x, summary_diffs, dims=[1])
     return weighted_diffs[1, :]
+end
+
+function (wb::WeightedBootstrap)(
+    sim_sum_stats::Array{Float64, 3}
+    )::Array{Float64, 1}
+
+    return wb(zeros(1,1,1), sim_sum_stats)
 end
 
 function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64, 1})
