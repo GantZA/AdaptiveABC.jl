@@ -200,11 +200,18 @@ end
                   elseif j < i
                         seriestype := :scatter
                         markerstrokecolor --> false
+                        if size(iterations, 1) > 1
+                              opacity_schedule = collect(range(1.0, 0.6, length=size(iterations, 1)))[end:-1:1]
+                        else
+                              opacity_schedule = [1.0]
+                        end
+                        
                         for (k, iter) in enumerate(iterations)
                               @series begin
                                     xguide --> "$(par2)"
                                     yguide --> "$(par1)"
                                     seriescolor := iteration_colours[k]
+                                    markeralpha := opacity_schedule[k]
                                     data = (abc_out.parameters[param_inds[j], :, iter], abc_out.parameters[param_inds[i], :, iter])
                               end # @series
                         end # for iter
