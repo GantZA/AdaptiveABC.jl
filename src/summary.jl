@@ -57,6 +57,39 @@ function generalized_hurts_exp(obs)
     return H
 end
 
+function get_summary_stats(obs::Array{Float64, 1}, simulated_obs::Array{Float64, 2})
+
+    n_reps = size(simulated_obs, 2)
+
+    summary_stats = zeros(n_reps, 17)
+
+    summary_stats[:, 1] = mean(simulated_obs, dims=1)
+    summary_stats[:, 2] = std(simulated_obs, dims=1)
+    summary_stats[:, 3] = mapslices(normal_kurtosis, simulated_obs, dims=1)
+
+    ks_test_stat(x) = ks_test(obs, x)
+    summary_stats[:, 4] = mapslices(ks_test_stat, simulated_obs, dims=1)
+    summary_stats[:, 5] = mapslices(generalized_hurts_exp, simulated_obs, dims=1)
+
+    # acf_first_lag(x) = acf(x, [1])[1]
+    # summary_stats[:, 6] = mapslices(acf_first_lag, simulated_obs, dims=1)
+
+    acf_raw = mapslices(x -> acf(x, [1, 5]), simulated_obs, dims=1)
+    acf_sqr = mapslices(x -> acf(x.^2, [1, 5]), simulated_obs, dims=1)
+    acf_abs = mapslices(x -> acf(abs.(x), [1, 5]), simulated_obs, dims=1)
+
+    pacf_raw = mapslices(x -> pacf(x, [1, 5]), simulated_obs, dims=1)
+    pacf_sqr = mapslices(x -> pacf(x.^2, [1, 5]), simulated_obs, dims=1)
+    pacf_abs = mapslices(x -> pacf(abs.(x), [1, 5]), simulated_obs, dims=1)
+
+    cov_stats = vcat(acf_raw, acf_sqr, acf_abs, pacf_raw, pacf_sqr, pacf_abs)
+    for i in 6:17
+        summary_stats[:, i] = cov_stats[i-5, :]
+    end
+    return summary_stats
+end
+
+
 function get_summary_stats(obs::Array{Float64, 1}, simulated_obs::Array{Float64, 1})
     summary_stats = zeros(17)
 
@@ -65,6 +98,7 @@ function get_summary_stats(obs::Array{Float64, 1}, simulated_obs::Array{Float64,
     summary_stats[3] = normal_kurtosis(simulated_obs)
     summary_stats[4] = ks_test(obs, simulated_obs)
     summary_stats[5] = generalized_hurts_exp(simulated_obs)
+    # summary_stats[6] = acf(simulated_obs, [1])[1]
 
     acf_raw = acf(simulated_obs, [1, 5])
     acf_sqr = acf(simulated_obs.^2, [1, 5])
@@ -88,6 +122,7 @@ function get_summary_stats(obs::Array{Float64, 1})
     summary_stats[3] = normal_kurtosis(obs)
     summary_stats[4] = 0.0
     summary_stats[5] = generalized_hurts_exp(obs)
+    # summary_stats[6] = acf(obs, [1])[1]
 
     acf_raw = acf(obs, [1, 5])
     acf_sqr = acf(obs.^2, [1, 5])
