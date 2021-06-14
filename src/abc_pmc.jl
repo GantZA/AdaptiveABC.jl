@@ -1,6 +1,15 @@
 # Algorithm 4 in (Prangle 2017)
 
-function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64, max_sims::Int, max_iter::Int, nsims_for_init=10000; store_init=false, diag_perturb=false, h1=Inf, parallel=false, batch_size=10000)
+function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64, max_sims::Int, 
+    max_iter::Int, nsims_for_init=10000; store_init=false, diag_perturb=false, h1=Inf, parallel=false, 
+    batch_size=10000, seed=-1)
+    # Set Seed
+    if seed == -1
+        next_seed = Int.(rand(MersenneTwister(), UInt32))
+    else
+        next_seed = Int.(rand(MersenneTwister(seed), UInt32))
+    end
+
     prog = Progress(max_iter, 1) ##Progress meter
     if parallel
         println("Running ABCRejection in parallel on $(Threads.nthreads()) threads")
@@ -34,7 +43,10 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
             accepted_particles = 0
             init_particles = 0
             while total_sims[] < max_sims && accepted_particles < n_particles
-                
+
+                next_seed = Int.(rand(MersenneTwister(next_seed), UInt32))
+                seeds = Int.(rand(MersenneTwister(next_seed), UInt32, batch_size))
+
                 accepted = fill(-1, batch_size)
                 proposal_parameters = Array{Float64,2}(undef, n_parameters, batch_size)
                 prop_summary_stats = Array{Float64,3}(undef, abc_input.n_summary_stats, n_reps, batch_size)
@@ -46,7 +58,7 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
                     # Sample batch_size particles using ABC-PMC
 
                     accepted[j], proposal_parameters[:, j], prop_summary_stats[:, :, j], prior_weight[j] = abc_pmc_iteration(
-                        abc_input, sample_from_prior, rej_outputs[1:i - 1], perturb_dist, thresholds[1:i - 1], n_reps
+                        abc_input, sample_from_prior, rej_outputs[1:i - 1], perturb_dist, thresholds[1:i - 1], n_reps, seeds[j]
                         )
 
                     atomic_add!(parallel_accepts, accepted[j])
@@ -73,6 +85,9 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
             init_particles = 0
             while accepted_particles < n_particles
                 
+                next_seed = Int.(rand(MersenneTwister(next_seed), UInt32))
+                seeds = Int.(rand(MersenneTwister(next_seed), UInt32, batch_size))
+
                 accepted = zeros(Int, batch_size)
                 proposal_parameters = Array{Float64,2}(undef, n_parameters, batch_size)
                 prop_summary_stats = Array{Float64,2}(undef, abc_input.n_summary_stats, batch_size)
@@ -84,7 +99,7 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
                     end
                     # Sample batch_size particles using ABC-PMC
                     accepted[j], proposal_parameters[:, j], prop_summary_stats[:, :, j], prior_weight[j] = abc_pmc_iteration(
-                        abc_input, sample_from_prior, rej_outputs[1:i - 1], perturb_dist, thresholds[1:i - 1], n_reps
+                        abc_input, sample_from_prior, rej_outputs[1:i - 1], perturb_dist, thresholds[1:i - 1], n_reps, seeds[j]
                         )
 
                     atomic_add!(parallel_accepts, accepted[j])
@@ -188,16 +203,23 @@ end
 
 function abc_pmc_iteration(
     abc_input::ABCInput, sample_from_prior::Bool, rej_outputs::Array{ABCRejOutput}, perturb_dist::MvNormal,
-    thresholds::Array{Float64,1}, n_reps::Int
+    thresholds::Array{Float64,1}, n_reps::Int, seed::Int64
     )
+
+    next_seed = Int.(rand(MersenneTwister(seed), UInt32))
+
     success = false  # simulated summary stats successfully generated
     while success == false
+        
+        next_seeds = Int.(rand(MersenneTwister(next_seed), UInt32, 2))
 
         if sample_from_prior
-            proposal_parameters = rand(abc_input.prior)
+            proposal_parameters = rand(next_seeds[1], abc_input.prior)
         else
-            proposal_parameters = importance_sample(rej_outputs[end], perturb_dist)
+            proposal_parameters = importance_sample(rej_outputs[end], perturb_dist, next_seeds[1])
         end
+        
+        next_seed = next_seeds[2]
 
         prior_weight = pdf(abc_input.prior, proposal_parameters)
         if prior_weight == 0.0
@@ -250,9 +272,10 @@ function check_proposal(summary_stats::Array{Float64,2}, rej_outputs::Array{ABCR
 end
 
 
-function importance_sample(out::ABCRejOutput, dist::MvNormal)
-    i = sample(Weights(out.weights))
-    return out.parameters[:,i] + rand(dist)
+function importance_sample(out::ABCRejOutput, dist::MvNormal, seed::Int64)
+    i = sample(MersenneTwister(seed), Weights(out.weights))
+    next_seed = Int.(rand(MersenneTwister(seed), UInt32))
+    return out.parameters[:,i] + rand(MersenneTwister(next_seed), dist)
 end
 
 

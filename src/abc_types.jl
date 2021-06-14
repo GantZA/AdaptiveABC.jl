@@ -7,8 +7,9 @@ function length(prior::Prior)
     return size(prior.distribution, 1)
 end
 
-function rand(d::Prior)
-    x = [rand(dist) for dist in d.distribution]
+function rand(seed::Int64, d::Prior)
+    seeds = Int.(rand(MersenneTwister(seed), UInt32, length(d)))
+    x = [rand(MersenneTwister(next_seed), dist) for (next_seed, dist) in zip(seeds, d.distribution)]
     return x
 end
 
@@ -30,8 +31,8 @@ abstract type Input end
 
 mutable struct ABCInput <: Input
     prior::Prior
-    parameter_names::Array{String, 1}
-    obs_summary_stats::Array{Float64, 1}
+    parameter_names::Array{String,1}
+    obs_summary_stats::Array{Float64,1}
     summary_fn::Function
     n_summary_stats::Int
     abc_dist::T where T <: ABCDistance
@@ -45,14 +46,14 @@ mutable struct ABCRejOutput <: ABCOutput
     n_sims::Int
     n_reps::Int
     n_successes::Int
-    parameter_names::Array{String, 1}
-    parameters::Array{Float64, 2}  # parameter[i, j,] is the ith parameter in the jth accepted simulation
-    summary_stats::Array{Float64, 3}  # summary_stats[i, j] is the ith summary statistic in the jth accepted simulation in the kth replication
-    distances::Array{Float64, 1}  # distances[i] is the distance in the ith accepted simulation 
-    weights::Array{Float64, 1}  # weights[i] is the weight for the ith accepted simulation
+    parameter_names::Array{String,1}
+    parameters::Array{Float64,2}  # parameter[i, j,] is the ith parameter in the jth accepted simulation
+    summary_stats::Array{Float64,3}  # summary_stats[i, j] is the ith summary statistic in the jth accepted simulation in the kth replication
+    distances::Array{Float64,1}  # distances[i] is the distance in the ith accepted simulation 
+    weights::Array{Float64,1}  # weights[i] is the weight for the ith accepted simulation
     abc_distance::T where T <: ABCDistance
-    init_summary_stats::Array{Float64, 3}  ##sims used for distance initialisation (only stored optionally)
-    init_parameters::Array{Float64, 2}  ##pars used for distance initialisation (only stored optionally)
+    init_summary_stats::Array{Float64,3}  ##sims used for distance initialisation (only stored optionally)
+    init_parameters::Array{Float64,2}  ##pars used for distance initialisation (only stored optionally)
 end
 
 function show(io::IO, out::ABCRejOutput)
@@ -68,7 +69,7 @@ function show(io::IO, out::ABCRejOutput)
     ess = sum(out.weights)^2 / sum(out.weights.^2)
     println("Total number of simulations: $(out.n_sims)")
     println("Total number of acceptances: $(out.n_successes)")
-    println("Acceptance percentage = $(round(out.n_successes/out.n_sims * 100.0, digits=2))% \n\n")
+    println("Acceptance percentage = $(round(out.n_successes / out.n_sims * 100.0, digits=2))% \n\n")
     println("Effective Sample Size = $(round(ess, digits=1))")
     print("\nParameters:\n\n")
     print("\tMean (95% intervals):\n")
@@ -99,16 +100,16 @@ mutable struct ABCPMCOutput <: ABCOutput
     n_summary_stats::Int
     n_iterations::Int
     n_reps::Int
-    n_tot_sims::Array{Int, 1}
-    parameter_names::Array{String, 1}
-    parameters::Array{Float64, 3}  # parameter[i, j, k] is the ith parameter in the jth accepted simulation in the kth iteration
-    summary_stats::Array{Float64, 4}  # summary_stats[i, j, k] is the ith summary statistic in the jth accepted simulation in the kth replication in the lth iteration
-    distances::Array{Float64, 2}  # distances[i, j] is the distance in the ith accepted simulation in the jth iteration
-    weights::Array{Float64, 2}  # weights[i, j] is the weight for the ith accepted simulation in the jth iteration
-    abc_distances::Array{ABCDistance, 1}  # ABCDistance used in the ith iteration
-    thresholds::Array{Float64, 1}  # thresholds[i] is the acceptance threshold used in the ith iteration
-    init_summary_stats::Array{Array{Float64, 2}, 1} ##init_sims[i] is sims for distance initialisation at iteration i (only stored optionally)
-    init_parameters::Array{Array{Float64, 2}, 1} ##init_pars[i] is pars for distance initialisation at iteration i (only stored optionally)
+    n_tot_sims::Array{Int,1}
+    parameter_names::Array{String,1}
+    parameters::Array{Float64,3}  # parameter[i, j, k] is the ith parameter in the jth accepted simulation in the kth iteration
+    summary_stats::Array{Float64,4}  # summary_stats[i, j, k] is the ith summary statistic in the jth accepted simulation in the kth replication in the lth iteration
+    distances::Array{Float64,2}  # distances[i, j] is the distance in the ith accepted simulation in the jth iteration
+    weights::Array{Float64,2}  # weights[i, j] is the weight for the ith accepted simulation in the jth iteration
+    abc_distances::Array{ABCDistance,1}  # ABCDistance used in the ith iteration
+    thresholds::Array{Float64,1}  # thresholds[i] is the acceptance threshold used in the ith iteration
+    init_summary_stats::Array{Array{Float64,2},1} ##init_sims[i] is sims for distance initialisation at iteration i (only stored optionally)
+    init_parameters::Array{Array{Float64,2},1} ##init_pars[i] is pars for distance initialisation at iteration i (only stored optionally)
 end
 
 function show(io::IO, out::ABCPMCOutput)
@@ -126,8 +127,8 @@ function show(io::IO, out::ABCPMCOutput)
         end
         ess = sum(out.weights[:,i])^2 / sum(out.weights[:, i].^2)
 
-        println("Acceptance ratio = $(round(size(out.distances[:, i], 1)/out.n_tot_sims[i], digits=2))")
-        println("Tolerance schedule = $(round.(out.thresholds[i], digits = 2))")
+        println("Acceptance ratio = $(round(size(out.distances[:, i], 1) / out.n_tot_sims[i], digits=2))")
+        println("Tolerance schedule = $(round.(out.thresholds[i], digits=2))")
         println("Effective Sample Size = $(round(ess, digits=1))")
         print("\nParameters:\n")
         print("\tMean \t (95% intervals):\n")

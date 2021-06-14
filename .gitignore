@@ -46,3 +46,9 @@ examples/*
 
 *.jld
 *.jld2
+
+__azurite*
+
+src/archive.jl
+src/test_debug.jl
+scratch*
