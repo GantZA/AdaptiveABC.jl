@@ -1,4 +1,5 @@
-function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int; store_init=false, parallel=false, seed=-1)
+function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int; store_init=false, 
+    parallel=false, seed=-1)
     # Set Seed
     if seed == -1
         seeds = Int.(rand(MersenneTwister(), UInt32, n_sims))
@@ -12,17 +13,19 @@ function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int; store_init=
     summary_stats = Array{Float64}(undef, abc_input.n_summary_stats, n_sims, n_reps)
     successes = Array{Bool}(undef, n_sims)
     if parallel
+        rnglock = ReentrantLock()
+
         println("Running ABCRejection in parallel on $(Threads.nthreads()) threads")
         Threads.@threads for i in 1:n_sims
-            Random.seed!(seeds[i])
-            parameters[:, i] = rand(abc_input.prior)
+            lock(rnglock)
+            parameters[:, i] = rand(seeds[i], abc_input.prior)
+            unlock(rnglock)
             successes[i], summary_stats[:, i, :] =  abc_input.summary_fn(parameters[:, i], abc_input.n_summary_stats, n_reps)
             next!(prog)
         end
     else
         for i in 1:n_sims
-            Random.seed!(seeds[i])
-            parameters[:, i] = rand(abc_input.prior)
+            parameters[:, i] = rand(seeds[i], abc_input.prior)
             successes[i], summary_stats[:, i, :] =  abc_input.summary_fn(parameters[:, i], abc_input.n_summary_stats, n_reps)
             next!(prog)
         end
@@ -50,7 +53,8 @@ function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int; store_init=
     return out
 end
 
-function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int, k::Int; store_init=false, parallel=false, seed=1)
+function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int, k::Int; 
+    store_init=false, parallel=false, seed=-1)
     out = ABCRejection(abc_input, n_sims, n_reps, store_init=store_init, parallel=parallel, seed=seed)
     out.parameters = out.parameters[:, 1:k]
     out.summary_stats = out.summary_stats[:, 1:k, :]
@@ -60,7 +64,8 @@ function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int, k::Int; sto
 end
 
 
-function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int, h::AbstractFloat; store_init=false, parallel=false, seed=1)
+function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int, h::AbstractFloat; 
+    store_init=false, parallel=false, seed=-1)
     out = ABCRejection(abc_input, n_sims, n_reps, store_init=store_init, parallel=parallel, seed=seed)
     if out.distances[end] <= h
         k = out.n_successes

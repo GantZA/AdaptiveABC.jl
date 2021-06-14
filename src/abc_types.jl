@@ -8,8 +8,8 @@ function length(prior::Prior)
 end
 
 function rand(seed::Int64, d::Prior)
-    seeds = Int.(rand(MersenneTwister(seed), UInt32, length(d)))
-    x = [rand(MersenneTwister(next_seed), dist) for (next_seed, dist) in zip(seeds, d.distribution)]
+    Random.seed!(seed)
+    x = [rand(dist) for dist in d.distribution]
     return x
 end
 
@@ -164,13 +164,13 @@ function parameter_vars(out::ABCRejOutput)
 end
 
 
-function parameter_vars(out::ABCPMCOutput)
-    posterior_vars = Array{Float64}(undef, out.n_parameters, out.n_iterations)
-    for i in 1:out.n_iterations
-        posterior_vars[:, i] = var(out.parameters[:, :, i], Weights(out.weights[:, i]), dims=2, corrected=false)  # Variance of the ith parameter across all accepted sims
-    end
-    return posterior_vars
-end
+# function parameter_vars(out::ABCPMCOutput)
+#     posterior_vars = Array{Float64}(undef, out.n_parameters, out.n_iterations)
+#     for i in 1:out.n_iterations
+#         posterior_vars[:, i] = var(out.parameters[:, :, i], Weights(out.weights[:, i]), dims=2, corrected=false)  # Variance of the ith parameter across all accepted sims
+#     end
+#     return posterior_vars
+# end
 
 
 function parameter_covs(out::ABCRejOutput)
@@ -179,13 +179,13 @@ function parameter_covs(out::ABCRejOutput)
 end
 
 
-function parameter_covs(out::ABCPMCOutput)
-    posterior_covs = Array{Float64}(undef, out.n_parameters, out.n_iterations)
-    for i in 1:out.n_iterations
-        posterior_covs[:, i] = cov(out.parameters[:, :, i], Weights(out.weights[:, i]), dims=2, corrected=false)  # Variance of the ith parameter across all accepted sims
-    end
-    return posterior_covs
-end
+# function parameter_covs(out::ABCPMCOutput)
+#     posterior_covs = Array{Float64}(undef, out.n_parameters, out.n_iterations)
+#     for i in 1:out.n_iterations
+#         posterior_covs[:, i] = cov(out.parameters[:, :, i], Weights(out.weights[:, i]), dims=2, corrected=false)  # Variance of the ith parameter across all accepted sims
+#     end
+#     return posterior_covs
+# end
 
 
 

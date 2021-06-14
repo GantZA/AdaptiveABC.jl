@@ -1,15 +1,16 @@
 module AdaptiveABC
 
+using Base:Int64
 using Distributions
 using ProgressMeter
 using StatsBase: mean, quantile, autocor, Weights, ecdf, pacf
 using Printf
-using Distances: KLDivergence
+using Distances:KLDivergence
 using DelimitedFiles
 using Random
 using Statistics: median, var
 using Base.Threads
-using LinearAlgebra: norm
+using LinearAlgebra:norm
 using RecipesBase
 using PlotUtils
 using Measures
@@ -30,8 +31,7 @@ include("plots.jl")
 include("summary.jl")
 
 
-export 
-    WeightedEuclidean, # Distance Measure Datatypes
+export WeightedEuclidean, # Distance Measure Datatypes
     WeightedBootstrap,
     ABCInput, ABCOutput, # ABC Input and Output Types
     ABC_PMC, # ABC Algorithms
