@@ -14,7 +14,6 @@ using LinearAlgebra:norm
 using RecipesBase
 using PlotUtils
 using Measures
-using IPMeasures: mmd, GaussianKernel
 
 import Base.show, Base.copy, Base.rand
 import Distributions.pdf
