@@ -5,7 +5,7 @@ using PyPlot
 pygui(true)
 
 num_paths = 1; M = 800 ; T = 2299 ; p₀ = 238.75 ; L = 200 ; Δx = L / M ; λ = 1.0
-D = 0.5 ; Δx = L / M ; Δt = (Δx^2) / (2.0 * D) ; σ = 1.5 ; μ = 0.03 ; nu = 2.0
+D = 0.5 ; Δx = L / M ; Δt = (Δx^2) / (2.0 * D) ; σ = 1.5 ; μ = 0.03 ; nu = 0.5
 α = 0.0
 
 slob_model = SLOB(num_paths, T, p₀, M, L, D, σ, nu, α, SourceTerm(λ, μ)) 
@@ -31,5 +31,3 @@ plt = Plots.plot(
 )
 
 Plots.savefig(plt, "examples/writeup/density_values_sample.pdf")
-
-Δt
