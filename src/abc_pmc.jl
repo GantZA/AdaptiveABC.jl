@@ -12,7 +12,7 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
 
     prog = Progress(max_iter, 1) ##Progress meter
     if parallel
-        println("Running ABCRejection in parallel on $(Threads.nthreads()) threads")
+        println("Running ABC-PMC in parallel on $(Threads.nthreads()) threads")
     end
     k = Int(ceil(n_particles * α))
     n_parameters = length(abc_input.prior)
