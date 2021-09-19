@@ -1,9 +1,9 @@
 abstract type ABCDistance end
 
 mutable struct WeightedEuclidean <: ABCDistance
-    obs_returns::Array{Float64, 1}
+    obs_returns::Array{Float64,1}
     get_summary_stats::Function
-    weights::Array{Float64, 1} 
+    weights::Array{Float64,1} 
     scale_type::AbstractString
 end
 
@@ -34,10 +34,9 @@ end
 # end
 
 function (we::WeightedEuclidean)(
-        init_sum_stats::Array{Float64, 3},
-        sim_sum_stats::Array{Float64, 3}
-    )::Array{Float64, 1}
-    
+        init_sum_stats::Array{Float64,3},
+        sim_sum_stats::Array{Float64,3}
+    )::Array{Float64,1}
     n_summary_stats, n_particles, n_replications = size(sim_sum_stats)
 
     # Calculate Weighted Differences
@@ -51,18 +50,16 @@ function (we::WeightedEuclidean)(
         weights = ones(n_summary_stats)
     else
         inv_weights = [MAD(init_sum_stats[i, :, :]) for i in 1:n_summary_stats]  # For each statistic, calculate the MAD across all n_sim, n_rep values       
-        weights = 1.0./inv_weights
+        weights = 1.0 ./ inv_weights
     end
     we.weights = weights
-
     return vec_norm_weighted_diffs # Vec of Normalised Weighted Differences (sims)
 end
 
 
 function (we::WeightedEuclidean)(
-        sim_sum_stats::Array{Float64, 3}
-    )::Array{Float64, 1}
-
+        sim_sum_stats::Array{Float64,3}
+    )::Array{Float64,1}
     n_summary_stats, n_particles, n_replications = size(sim_sum_stats)
 
     # Calculate weights using sim_sum_stats
@@ -70,7 +67,7 @@ function (we::WeightedEuclidean)(
         weights = ones(n_summary_stats)
     else
         inv_weights = [MAD(sim_sum_stats[i, :, :]) for i in 1:n_summary_stats]  # For each statistic, calculate the MAD across all n_sim, n_rep values       
-        weights = 1.0./inv_weights
+        weights = 1.0 ./ inv_weights
     end
     we.weights = weights
 
@@ -79,29 +76,28 @@ function (we::WeightedEuclidean)(
     obs_sum_stats = repeat(obs_sum_stats_vec, outer=[1, n_particles, n_replications])
     weighted_diff = repeat(we.weights, outer=[1, n_particles, n_replications]) .* abs.(obs_sum_stats - sim_sum_stats)  # Array of Weighted Differences (stats x sims x reps) 
     vec_norm_weighted_diffs = mapslices(x -> norm(x, 2), weighted_diff, dims=[1, 3])[1,:,1]
-    
     return vec_norm_weighted_diffs # Vec of Normalised Weighted Differences (sims)
 end
 
 
-function (we::WeightedEuclidean)(sim_sum_stats::Array{Float64, 1})
+function (we::WeightedEuclidean)(sim_sum_stats::Array{Float64,1})
     # Calculate Weighted Differences
     obs_sum_stats = we.get_summary_stats(we.obs_returns)
     weighted_diff = we.weights .* abs.(obs_sum_stats .- sim_sum_stats)  # Vector of Weighted Differences (stats x 1) 
     return norm(weighted_diff, 2) # Scalar of Normalised Weighted Differences (1 x 1)
 end
 
-function (we::WeightedEuclidean)(sim_sum_stats::Array{Float64, 2})
+function (we::WeightedEuclidean)(sim_sum_stats::Array{Float64,2})
     # Given 1 particle of n_rep and n_sum_stats, output the distance
     n_summary_stats, n_replications = size(sim_sum_stats)
     obs_sum_stats = repeat(we.get_summary_stats(we.obs_returns), outer=[1, n_replications])
-    weighted_diff = we.weights .* abs.(obs_sum_stats .- sim_sum_stats)  # 2D Array of Weighted Differences (stats x 1) 
+    weighted_diff = we.weights .* abs.(obs_sum_stats .- sim_sum_stats)  # 2D Array of Weighted Differences (stats x 1)
     return norm(weighted_diff, 2) # Scalar of Normalised Weighted Differences (1 x 1)
 end
 
 
 # Median Absolute Deviation
-function MAD(x::Array{Float64, 2})::Float64
+function MAD(x::Array{Float64,2})::Float64
     # Calculate Median Absolute Deviation of Array (n_particles x n_replications)
     median_per_particle = median(x, dims=2) # Vec of size n_particles
     x_median = median(median_per_particle)
@@ -109,7 +105,7 @@ function MAD(x::Array{Float64, 2})::Float64
 end
 
 # Median Absolute Deviation
-function MAD(x::Array{Float64, 1})::Float64
+function MAD(x::Array{Float64,1})::Float64
     # Calculate Median Absolute Deviation of Array (n_particles x 1)
     x_median = median(x)
     return median(abs.(x .- x_median))
@@ -119,7 +115,7 @@ end
 # Winker Objective Function
 
 mutable struct WeightedBootstrap <: ABCDistance
-    obs_returns::Array{Float64, 1}
+    obs_returns::Array{Float64,1}
     get_summary_stats::Function 
     bootstrap_weight_matrix::BlockBootstrapWeightMatrix
 end
@@ -130,9 +126,9 @@ end
 
 
 function (wb::WeightedBootstrap)(
-        init_sum_stats::Array{Float64, 3},
-        sim_sum_stats::Array{Float64, 3}
-    )::Array{Float64, 1}
+        init_sum_stats::Array{Float64,3},
+        sim_sum_stats::Array{Float64,3}
+    )::Array{Float64,1}
     n_summary_stats, n_particles, n_replications = size(sim_sum_stats)
     # Calculate Weighted Differences
     obs_sum_stats_vec = wb.get_summary_stats(wb.obs_returns)
@@ -144,13 +140,13 @@ function (wb::WeightedBootstrap)(
 end
 
 function (wb::WeightedBootstrap)(
-    sim_sum_stats::Array{Float64, 3}
-    )::Array{Float64, 1}
+    sim_sum_stats::Array{Float64,3}
+    )::Array{Float64,1}
 
-    return wb(zeros(1,1,1), sim_sum_stats)
+    return wb(zeros(1, 1, 1), sim_sum_stats)
 end
 
-function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64, 1})
+function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64,1})
     # Calculate Weighted Differences
     obs_sum_stats = wb.get_summary_stats(wb.obs_returns)
     summary_diffs = obs_sum_stats .- sim_sum_stats
@@ -158,7 +154,7 @@ function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64, 1})
     return weighted_diff
 end
 
-function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64, 2})
+function (wb::WeightedBootstrap)(sim_sum_stats::Array{Float64,2})
     # Given 1 particle of n_rep and n_sum_stats, output the distance
     n_summary_stats, n_replications = size(sim_sum_stats)
     obs_sum_stats = repeat(wb.get_summary_stats(wb.obs_returns), outer=[1, n_replications])

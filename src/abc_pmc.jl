@@ -1,3 +1,4 @@
+using Logging
 # Algorithm 4 in (Prangle 2017)
 
 function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64, max_sims::Int, 
@@ -70,9 +71,10 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
                     accepted[j], prop_summary_stats[:, :, j], prior_weight[j] = abc_pmc_iteration(
                         abc_input, rej_outputs[1:i - 1], thresholds[1:i - 1], n_reps, proposal_parameters[:, j])
 
-                    atomic_add!(parallel_accepts, accepted[j])
-                    atomic_add!(total_sims, 1)
+                    atomic_add!(parallel_accepts, zero_or_one(accepted[j]))
+                    atomic_add!(total_sims, accepted[j] >= 0 ? 1 : 0)
                 end
+
                 for j in 1:batch_size
                     if accepted[j] != -1 && init_particles < nsims_for_init 
                         init_particles += 1
@@ -138,6 +140,7 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
             init_parameters = init_parameters[:, 1:simulations_done[i]]
         end
 
+
         if accepted_particles < n_particles
             # Return all 
             println("\nEarly stopping due to max simulations reached in Iteration $(i)")
@@ -183,7 +186,7 @@ function ABC_PMC(abc_input::ABCInput, n_particles::Int, n_reps::Int, α::Float64
     summary_stats = Array{Float64}(undef, abc_input.n_summary_stats, n_particles, n_reps, num_iters)
     distances = Array{Float64}(undef, n_particles, num_iters)
     weights = Array{Float64}(undef, n_particles, num_iters)
-
+    
     for i in 1:num_iters
         parameters[:, :, i] = rej_outputs[i].parameters
         summary_stats[:, :, :, i] = rej_outputs[i].summary_stats
@@ -214,22 +217,22 @@ function abc_pmc_iteration(
     abc_input::ABCInput, rej_outputs::Array{ABCRejOutput},
     thresholds::Array{Float64,1}, n_reps::Int, proposal_parameters::Array{Float64,1}
     )
-
+    
     prior_weight = pdf(abc_input.prior, proposal_parameters)
     if prior_weight == 0.0
-        return 0, zeros(abc_input.n_summary_stats, n_reps), prior_weight
+        return -1, zeros(abc_input.n_summary_stats, n_reps), prior_weight
     end
-
+    
     success, prop_summary_stats = abc_input.summary_fn(proposal_parameters, abc_input.n_summary_stats, n_reps)
     if !success
-        return 0, prop_summary_stats, prior_weight
+        return -1, zeros(abc_input.n_summary_stats, n_reps), prior_weight
     end
     accept = check_proposal(prop_summary_stats, rej_outputs, thresholds)
     if accept
         return 1, prop_summary_stats, prior_weight
     else
         return 0, prop_summary_stats, prior_weight
-    end
+end
 
 end
 
@@ -286,4 +289,11 @@ function get_weights(parameters::Array{Float64,2}, prior_weights::Array{Float64,
     return weights ./ sum(weights)
 end
 
+function zero_or_one(x)
+    if x == 1
+        return 1
+    else
+        return 0
+    end
+end
 

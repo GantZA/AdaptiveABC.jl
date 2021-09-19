@@ -3,6 +3,7 @@ mutable struct Prior
     Prior(distributionarray::Array{T}) where T <: Distribution = new(distributionarray)
 end
 
+
 function length(prior::Prior)
     return size(prior.distribution, 1)
 end

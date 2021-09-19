@@ -14,6 +14,7 @@ using LinearAlgebra:norm
 using RecipesBase
 using PlotUtils
 using Measures
+using Logging
 
 import Base.show, Base.copy, Base.rand
 import Distributions.pdf
