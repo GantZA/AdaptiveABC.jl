@@ -72,7 +72,7 @@ function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int, h::Abstract
     else
         k = findfirst(x -> x > h, out.distances)
     end
-    if isnothing(b)
+    if isnothing(k)
         println("No simulations were accepted at current threshold=$h. Smallest distance is $(out.distances[1])")
         return out
     else
