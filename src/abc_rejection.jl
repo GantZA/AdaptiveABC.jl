@@ -68,7 +68,7 @@ function ABCRejection(abc_input::ABCInput, n_sims::Int, n_reps::Int, h::Abstract
     store_init=false, parallel=false, seed=-1)
     out = ABCRejection(abc_input, n_sims, n_reps, store_init=store_init, parallel=parallel, seed=seed)
     if out.distances[end] <= h
-        k = out.n_successes
+        k = out.n_successes + 1
     else
         k = findfirst(x -> x > h, out.distances)
     end
