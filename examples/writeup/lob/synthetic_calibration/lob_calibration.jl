@@ -50,7 +50,6 @@ function summary_fn(parameters, n_summary_stats, n_replications)
         end
         return true, summary_stats
     catch e
-        @error(e)
         return false, zeros(n_summary_stats, n_replications)
     end
 end
@@ -252,7 +251,11 @@ weighted_bootstrap = WeightedBootstrap(vcat([0], true_lob_log_returns), get_summ
 
 function f(x, weight, reps)
     success, sum_stats = summary_fn(x, 17, reps)
-    return weight(sum_stats)
+    if success == true
+        return weight(sum_stats)
+    else
+        return Inf
+    end
 end
 
 f_wb(x, grad) = f(x, weighted_bootstrap, n_replications)
@@ -283,7 +286,7 @@ print()
 results
 println()
 # Nelder-Mead BBWM: 
-# [2.269; 2.174; 0.553; 1.958]
+# [1.778; 1.944; 0.719; 1.756]
 
 #####
 # Calibration Technique: Nelder-Mead MADWE
@@ -329,4 +332,4 @@ print(round.(mean(results, dims=2), digits=3))
 results
 println()
 # Nelder-Mead MADWE: 
-# [1.852; 1.699; 0.633; 1.856]
+# [2.373; 1.924; 0.52; 1.295]

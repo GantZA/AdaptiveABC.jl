@@ -164,29 +164,7 @@ function parameter_vars(out::ABCRejOutput)
     return posterior_vars
 end
 
-
-# function parameter_vars(out::ABCPMCOutput)
-#     posterior_vars = Array{Float64}(undef, out.n_parameters, out.n_iterations)
-#     for i in 1:out.n_iterations
-#         posterior_vars[:, i] = var(out.parameters[:, :, i], Weights(out.weights[:, i]), dims=2, corrected=false)  # Variance of the ith parameter across all accepted sims
-#     end
-#     return posterior_vars
-# end
-
-
 function parameter_covs(out::ABCRejOutput)
     posterior_covs = cov(out.parameters, Weights(out.weights), 2, corrected=false)  # Variance of the ith parameter across all accepted sims
     return posterior_covs
 end
-
-
-# function parameter_covs(out::ABCPMCOutput)
-#     posterior_covs = Array{Float64}(undef, out.n_parameters, out.n_iterations)
-#     for i in 1:out.n_iterations
-#         posterior_covs[:, i] = cov(out.parameters[:, :, i], Weights(out.weights[:, i]), dims=2, corrected=false)  # Variance of the ith parameter across all accepted sims
-#     end
-#     return posterior_covs
-# end
-
-
-

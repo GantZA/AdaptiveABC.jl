@@ -253,7 +253,12 @@ weighted_bootstrap = WeightedBootstrap(vcat([0], true_slob_log_returns), get_sum
 
 function f(x, weight, reps)
     success, sum_stats = summary_fn(x, 17, reps)
-    return weight(sum_stats)
+    if success == true
+        return weight(sum_stats)
+    else
+        return Inf
+    end
+    
 end
 
 f_wb(x, grad) = f(x, weighted_bootstrap, n_replications)
@@ -284,11 +289,21 @@ print()
 results
 println()
 # Nelder-Mead BBWM: 
-# [1.349; 1.778; 0.723; 1.451; 13.487]
+# [1.735; 1.775; 0.599; 2.203; 125.624]
 
 #####
 # Calibration Technique: Nelder-Mead MADWE
 #####
+
+function f(x, weight, reps)
+    success, sum_stats = summary_fn(x, 17, reps)
+    if success == true
+        return weight(sum_stats)
+    else
+        return Inf
+    end
+    
+end
 
 weighted_mad = WeightedEuclidean(true_slob_log_returns, get_summary_stats, ones(17), "MAD")
 sim_sum_stats = zeros(17, 100, n_replications)
@@ -310,7 +325,7 @@ upper = [3.0, 3.0, 0.95, 3.0, 200.0]
 
 nm_reps = 10
 results = zeros(size(lower, 1), nm_reps)
-Random.seed!(19981890001)
+Random.seed!(627267162767)
 for i in 1:nm_reps
     println("Iteration $i")
     opt = Opt(:LN_NELDERMEAD, size(lower, 1))
@@ -330,5 +345,5 @@ print(round.(mean(results, dims=2), digits=3))
 results
 println()
 # Nelder-Mead MADWE: 
-# [1.659; 1.925; 0.481; 1.547; 12.936]
+# [1.819; 1.711; 0.608; 1.786; 143.291]
 
